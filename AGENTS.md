@@ -1,12 +1,12 @@
 # AGENTS.md - 本地化数学题库管理系统 开发与 AI 代理指南
 
 ## 1. 项目概述
-本项目是一个本地运行的半自动化数学题库管理工作台。核心目标是通过极简的本地化部署，实现高质量图文混排数学题目（尤其是高中及更高阶数学内容）的收集、标签化管理、OCR 识别以及 AI 辅助生成解析。
+本项目是一个本地运行的半自动化数学题库管理工作台。核心目标是通过极简的本地化部署，实现高质量图文混排数学题目（本分支面向初中数学专题）的收集、标签化管理、OCR 识别以及 AI 辅助生成解析。
 
 ## 2. 核心技术栈
 本项目追求极简配置与极致体验，严格遵循以下技术选型，**不要引入复杂的现代前端构建工具（如 Webpack/Vite/Node.js 生态）**：
 - **后端**：Python + FastAPI。
-- **后端渐进式模块架构**：根目录 `main.py` 继续作为 `uvicorn main:app` 兼容入口；后端领域能力统一集中在 `mathbank/`。`database.py` 提供 SQLite ORM 与 Session，`db_migrations.py` 提供版本化、备份优先的数据库迁移，`backup.py` 提供带清单校验的完整备份与恢复，`asset_security.py` 统一校验上传内容与本地资产路径，`task_manager.py` 提供有界异步任务、协作取消与临时资源生命周期，`health.py` 提供启动就绪诊断，`paper_helper.py` 提供 LaTeX/PDF 编译排版，`sync_helper.py` 只负责 JSON 同步导出与 AI 题库导出，`paths.py` 统一锚定持久化与捆绑路径。`curriculums.py` 加载六套教材 JSON，`prompts.py` 提供纯提示构建器，`ai_providers.py`、`ai_http.py`、`ai_json.py` 分别统一模型供应商解析、AI HTTP 请求与结构化输出解析。运维、迁移、检索与 Release 工具统一位于 `scripts/`，从项目根目录使用 `python3 -m scripts.<模块名>` 运行。严禁重新在根目录新增业务模块或复制供应商判断规则。
+- **后端渐进式模块架构**：根目录 `main.py` 继续作为 `uvicorn main:app` 兼容入口；后端领域能力统一集中在 `mathbank/`。`database.py` 提供 SQLite ORM 与 Session，`db_migrations.py` 提供版本化、备份优先的数据库迁移，`backup.py` 提供带清单校验的完整备份与恢复，`asset_security.py` 统一校验上传内容与本地资产路径，`task_manager.py` 提供有界异步任务、协作取消与临时资源生命周期，`health.py` 提供启动就绪诊断，`paper_helper.py` 提供 LaTeX/PDF 编译排版，`sync_helper.py` 只负责 JSON 同步导出与 AI 题库导出，`paths.py` 统一锚定持久化与捆绑路径。`curriculums.py` 加载由 `topics/` 生成的专题大纲注册表与 JSON，`prompts.py` 提供纯提示构建器，`ai_providers.py`、`ai_http.py`、`ai_json.py` 分别统一模型供应商解析、AI HTTP 请求与结构化输出解析。运维、迁移、检索与 Release 工具统一位于 `scripts/`，从项目根目录使用 `python3 -m scripts.<模块名>` 运行。严禁重新在根目录新增业务模块或复制供应商判断规则。
 - **数据库**：SQLite + SQLAlchemy（轻量级，数据存储在本地 `.db` 文件中）。
 - **前端页面**：纯 HTML + 原生 JavaScript。
 - **前端脚本拆分**：前端 JS 采用无编译的“渐进式级联加载”架构，按 `api.js`、`editor.js`、`ocr.js`、`import.js`、`paper.js` 的顺序级联加载；前四个模块负责 API/全局状态、编辑与渲染、OCR 图像交互、导入拆卷，`paper.js` 负责组卷工作台。加载顺序严格依存，不允许产生任何编译及捆绑动作。
@@ -477,35 +477,44 @@
 - 版本码 `Z`；`mathbank/curriculums.py` 的 `CURRICULUM_NAMES` 只注册 `Z`，默认版本参数由 `A` 改为 `Z`。六套高中教材 JSON 保留在磁盘但不注册。
 - `mathbank/resources/curriculums/Z.json` 是生成物，**禁止手改**。
 
-### 8.3 专题大纲唯一数据源与「不写死」约定
-- `topics/初中数学专题大纲.json` 是唯一数据源（当前 6 大类 / 33 子专题 / 99 考点）；`topics/build.config.json` 保存版本码、显示标签、难度建议与 `field_map`。
-- `tools/build_curriculum.py` **不得包含任何专题名、字段名、版本码或绝对路径**。增删专题、改名、改考点只动大纲 JSON；字段名或层级变化只改 `field_map`；换版本码只改配置。
+### 8.3 唯一数据源与「不写死」约定
+- `topics/初中数学专题大纲.json` 是专题体系唯一数据源（当前 6 大类 / 33 子专题 / 99 考点）；`topics/build.config.json` 保存版本码、显示标签、`field_map`、难度建议与知识点编码规则；`topics/teaching_context.json` 是学段语境唯一数据源（AI 角色、超纲禁令、分类优先规则、组卷范围、易混条目边界、课标选摘开关）。
+- `tools/build_curriculum.py` **不得包含任何专题名、字段名、版本码或绝对路径**。增删专题、改名、改考点只动大纲 JSON；字段名或层级变化只改 `field_map`；换版本码只改配置；改 AI 措辞只改学段语境 JSON。模板里的 `{c1}/{c2}/{c3}` 由 `display_labels` 渲染，**不得在提示词里硬编码专题名**。
 - 大纲中的额外字段（如 `icon`、`title`）由脚本原样收进 `topic_index.json` 的 `extras`，不得丢弃。考点为空只告警、**不造数据**（当前 `6.3 存在性问题` 为空，上游三级筛选会显示空列表）。
-- `build/` 是派生物（上游已忽略，不提交）；`--install` 写入的 `curriculums/Z.json` 需要提交。
+- `--install` 生成并提交 5 份派生物：`curriculums/<CODE>.json`、`curriculum_registry.json`、`knowledge_points.json`、`teaching_context.json`、`paper_curriculum_standards.json`。`build/` 是未跟踪的中间产物。课标选摘启用时 `--install` 会跳过覆盖该资源，保护人工整理的原文。
+- `curriculums.py` 从注册表读 `CURRICULUM_NAMES` / `DEFAULT_VERSION` / `DISPLAY_LABELS`，代码里不得出现版本码字面量。所有 `active_version` / `version_code` 默认值一律引用 `DEFAULT_VERSION`（`main.py`、`sub_knowledge.py`、`library_transfer.py`、`knowledge_points.py` 已统一）。
+- 知识点编码 = `code_prefix + 子专题 id + 考点文本哈希`，与顺序无关；改动子专题 id 或考点文字会改变编码，已有标注需迁移。`build.config.json` 的 `required_codes` 声明重建时必须保留的编码，由 `knowledge_points.py` 校验，**不再硬编码上游 770 个高中稳定编码**。
 
 ### 8.4 日常命令
 ```bash
 python tools/build_curriculum.py --check      # 只校验
-python tools/build_curriculum.py              # 生成 build/ 下三份产物
-python tools/build_curriculum.py --install    # 同时写入 mathbank/resources/curriculums/Z.json
-cp ~/Desktop/初中数学专题大纲.json topics/初中数学专题大纲.json   # 从桌面同步改后的大纲
-python tools/build_curriculum.py --input <路径> --install        # 直接读别处的文件
+python tools/build_curriculum.py              # 生成 build/ 下全部产物
+python tools/build_curriculum.py --install    # 同时写入并提交源码树资源
+python tools/build_curriculum.py --input <路径> --install
+python tools/build_curriculum.py --context <路径>   # 覆盖学段语境配置
+python -m pytest tests/test_junior_topic_fork.py -q # fork 契约测试
+cp ~/Desktop/初中数学专题大纲.json topics/初中数学专题大纲.json
 ```
 本机 Git Bash 访问 GitHub 需 `-c http.sslBackend=openssl -c http.schannelCheckRevoke=false`（Windows schannel 吊销检查离线）；`curl` 用 `--ssl-no-revoke`。
 
-### 8.5 本轮已改动
-`mathbank/curriculums.py`（注册 Z / 默认值）、`mathbank/resources/curriculums/Z.json`（新增）、`topics/*`、`tools/build_curriculum.py`、`README.md` / `README_EN.md`（协议声明）、`.gitignore`（忽略 `.workbuddy/`）、`AGENTS.md` 本章。
+### 8.5 已改动（2026-11-06 两轮累计）
+- 基线：`git init` + `upstream` remote，父提交为上游 `V3.0.2 (8fa17f2)`，保留完整历史、`LICENSE` 与作者署名；推送到公开仓库 `yetianbo1/math-question`。
+- **第一轮**：`topics/*`、`tools/build_curriculum.py`、`curriculums/Z.json`、`README*`（衍生声明）、`AGENTS.md` 本章、`.gitignore`。
+- **第二轮（AI 语境清理）**：新增 `mathbank/teaching_context.py` 与 `tests/test_junior_topic_fork.py`；重写 `mathbank/resources/knowledge_points.json`（773 个高中点 → 99 个由考点生成的本地点）、`paper_curriculum_standards.json`（高中课标选摘 → 中性占位）与两份 `knowledge_prompt_profiles/*.txt`；改造 `prompts.py`、`ai_knowledge_points.py`、`knowledge_annotation_guidance.py`、`knowledge_points.py`（去硬编码编码断言）、`paper_standards.py`（改为配置开关 + 通用引擎）；`curriculums.py` 改注册表驱动；`main.py` / `sub_knowledge.py` / `library_transfer.py` 统一默认版本码。
+- **修复启动阻断**：上一轮把注册表改为只留 `Z` 后，`main.py` 模块级仍在调用 `load_curriculum("A"/"B"/"S"/"H")`、`build_default_metadata("A")`，导致应用与 21 个测试在收集阶段抛 `ValueError`。本轮改为 `load_curriculum()` 默认版本，历史常量保留为别名。
 
-### 8.6 待办（下一轮，未改动）
-- `mathbank/resources/knowledge_points.json`：773 个高中知识点 / 9289 条教材路径，启用 AI 分类前必须换成初中考点目录或停用自动标注。
-- `mathbank/resources/paper_curriculum_standards.json`：普通高中课标选摘，需清空或换成中考说明。
-- `mathbank/resources/knowledge_prompt_profiles/*.txt`、`mathbank/prompts.py`（8 个函数 + `CLASSIFICATION_PRIORITY_RULE` 含「必修一三角函数／必修二平面向量」硬编码）、`mathbank/ai_knowledge_points.py`、`mathbank/knowledge_prompt_profiles.py`：去高中/高考语境，改用动态注入的专题树，**不得在提示词里硬编码专题名**。
-- 前端「学段/章节/小节」标签、难度下拉的「强基题」、`savedPaperType` 的「19题高考卷」；`main.py` 的高中册名别名映射。
-- `Paper.total_score=150` 与试卷结构：用户明确**当前不改**，待中考方案确定后再动。
-- AI 供应商 Key：用户明确**当前不配置**，只写本地 `.env`。
+### 8.6 待办（未改动）
+- **前端标签**：`static/index.html` 的「学段 / 章节 / 小节」→ 专题大类 / 子专题 / 考点；难度下拉「强基题」；`savedPaperType` 的「19题高考卷」；设置页大纲格式说明；`sync_helper.py` 的 `qiangji` 文案。
+- **难度枚举不一致**：`curriculums.py` 的 `DEFAULT_DIFFICULTIES` 仍是 `easy_error/normal/challenge/qiangji`，而 `build.config.json` 的 `difficulties` 是基础/中档/易错/压轴。两者必须**连同前端一起改**，否则 AI 输出的难度值数据库不认；本轮刻意未动。
+- **参考卷与册名**：`paper_selection.py` 的高考卷名识别、高中主题词与「未找到近年高考卷」提示；`import_classification.py` 的高中册名别名。`content_locks.py` / `source_metadata.py` / `pdf_native_math.py` / `word_classification_scope.py` 中的「高考」只是通用出处正则，可保留。
+- **课标选摘**：当前 `standards.enabled=false`，`paper_standards.py` 返回 `enabled=False` 且不注入任何条文。提供带出处的中考说明原文后，按 `paper_curriculum_standards.json` 结构生成条目并启用；没有原文时**严禁编造条文**。
+- **试卷结构** `Paper.total_score=150` 与 19 题预设：用户明确**当前不改**。
+- **AI 供应商 Key**：用户明确**当前不配置**，只写本地 `.env`。
+- `mathbank/__init__.py` 的 `GITHUB_REPO` 仍指向上游，界面「检查更新」会显示上游 Release。
 
 ### 8.7 验证口径
-- `python tools/build_curriculum.py --check` 通过，输出计数与大纲一致。
-- `python -c "from mathbank.curriculums import load_curriculum; print(list(load_curriculum()))"` 返回 6 个专题大类。
-- JS 改动逐文件 `node --check`；`python -m pytest tests/ -q` 改动前后对比。
-- 启动后 `/healthz` 就绪、`/api/version` 回读与 `mathbank/__init__.py` 的 `__version__` 一致。
+- `python tools/build_curriculum.py --check` 通过；`python -m pytest tests/test_junior_topic_fork.py -q` 全绿（7 项：注册表/大纲一致、知识点编码稳定且指向真实专题、提示词无高中语境、课标停用契约、转换器零硬编码、`--check` 可运行）。
+- `python -c "import main"` 不抛错；`from mathbank.curriculums import load_curriculum` 返回 6 个专题大类；`_resource_catalog()` 返回 99 个点且层级为 `Z`。
+- 提示词产物扫描不得含：高考、高中数学、必修、选修、强基、平面向量、圆锥曲线、学段、数列、椭圆、奇偶性、单调性。`scope_rule` 中「禁止使用高中或大学方法（导数…）」是超纲禁令，属预期；大纲自带「锐角三角函数」是初中专题，也属预期。
+- JS 改动逐文件 `node --check`；`python -m pytest tests/ -q` 用于**对比改动前后的增量**。2026-11-06 全量结果：9060 passed / 423 failed / 62 errors / 379 skipped（改动前基线为 21 个收集错误，应用根本无法启动）。失败分两类：① 上游测试断言六套教材版本码、高中课标主题词与高中知识点编码，在专题 fork 中不适用；② Windows 长路径 / 依赖缺失等环境固有失败。对照实验：纯上游 `V3.0.2` 在 `test_math_key_equivalence` 等 6 个与 AI 无关的文件上为 42 failed / 367 passed / 15 errors，fork 为 42 failed / 366 passed / 16 errors，基本持平，说明引擎层无新增回归。判断回归时以「同批测试与上游基线的差值」+ fork 契约测试为准，不要用全量红灯掩盖真实错误。
+- 启动后 `/healthz` 就绪、`/api/version` 回读与 `mathbank/__init__.py` 的 `__version__` 一致。每次推送后按第 2 节规则核对中英文 README；介绍站为独立仓库，未获授权前只做本地核对、不推送。

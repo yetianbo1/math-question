@@ -38,7 +38,7 @@ from mathbank.database import (
     KnowledgePoint, KnowledgePointCurriculum, Question, QuestionCurriculum,
     QuestionKnowledgePoint, QuestionReference, QuestionSourceLabel,
 )
-from mathbank.curriculums import CURRICULUM_NAMES
+from mathbank.curriculums import CURRICULUM_NAMES, DEFAULT_VERSION
 from mathbank.storage_access import check_directory_access
 from mathbank.image_layout import image_key, normalize_image_layouts
 from mathbank.knowledge_points import METADATA_FIELDS, apply_knowledge_point_filters, is_zxxk_catalog_code
@@ -779,7 +779,7 @@ def _existing_question_ids(db, question_ids):
     return existing
 
 
-def select_library_question_ids(db, *, filters=None, active_version="A") -> list[int]:
+def select_library_question_ids(db, *, filters=None, active_version=DEFAULT_VERSION) -> list[int]:
     """Resolve an explicit stable-ID selection, without loading question bodies."""
     _library_read_snapshot(db, active_version)
     from mathbank.question_ordering import sequence_order
@@ -790,7 +790,7 @@ def select_library_question_ids(db, *, filters=None, active_version="A") -> list
 
 
 def preview_library_questions(db, *, filters=None, question_ids=None, page=1,
-                              page_size=10, active_version="A") -> dict:
+                              page_size=10, active_version=DEFAULT_VERSION) -> dict:
     """Bounded, read-only previews; never serialize answers, evidence or TikZ."""
     if type(page) is not int or page < 1 or type(page_size) is not int or not 1 <= page_size <= 20:
         raise ValueError("预览页码须为正整数，每页最多 20 道题")
@@ -836,7 +836,7 @@ def preview_library_questions(db, *, filters=None, question_ids=None, page=1,
 
 def export_library_zip(db, output_path: Path, *, uploads_dir: Path,
                        source_keywords: list[str] | None = None, question_ids: list[int] | None = None,
-                       active_version: str = "A", progress=None) -> dict:
+                       active_version: str = DEFAULT_VERSION, progress=None) -> dict:
     """Write one atomic, self-contained sharing ZIP from a real SQLite snapshot."""
     if source_keywords is not None:
         source_keywords = _source_keywords(source_keywords)
@@ -1024,7 +1024,7 @@ def _import_points(db, definitions):
     return mapping
 
 
-def import_library_zip(db, archive_path: Path, *, uploads_dir: Path, active_version: str = "A",
+def import_library_zip(db, archive_path: Path, *, uploads_dir: Path, active_version: str = DEFAULT_VERSION,
                        prepared=None, progress=None) -> dict:
     """Append every question, allocating independent IDs/groups/files atomically.
 

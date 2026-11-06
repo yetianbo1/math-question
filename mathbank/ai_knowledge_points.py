@@ -60,13 +60,13 @@ def build_ai_knowledge_prompt(catalog=None, *, profile="conservative"):
     # database/search API, but give the classifier one unambiguous task name.
     compact = [[point["code"], point["name"]] for point in catalog]
     return (
-        "\n【独立考查知识点】与教材位置分开标注，使用同一次请求。以下全目录每行是"
+        "\n【独立考查知识点】与专题位置分开标注，使用同一次请求。以下全目录每行是"
         "[稳定编码,规范展示名]。名称限定本点范围；不得把它泛化为所属整个模块。"
-        "完整目录含本地点，允许跨章节选点，不按教材位置裁剪：\n"
+        "完整目录含本地点，允许跨专题选点，不按专题位置裁剪：\n"
         + json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
         + "\n每题增加knowledge_points数组（最多12项，不确定返回[]）。只使用上述稳定编码，"
         "不得新建点、按名称猜编码或输出来源网站的其他编号。"
-        "不能因解析偶然用导数就把基础函数目标换为导数。\n"
+        "不能因解析中偶然用到某个方法，就把题干直接目标换成该方法对应的考点。\n"
         + build_knowledge_annotation_guidance(catalog)
         +
         "每项格式为{\"code\":\"目录编码\",\"role\":\"main或auxiliary\","

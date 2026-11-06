@@ -3,37 +3,40 @@
 This module never reads a catalogue or changes an identity. Request builders
 supply the complete frozen catalogue; optional notes appear only when both a
 known stable code and a verified name are present in that same snapshot.
+Topic-specific boundary notes are declared in topics/teaching_context.json.
 """
 from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Mapping
 
+from mathbank import teaching_context
+
 
 KNOWLEDGE_ANNOTATION_GUIDANCE_VERSION = "knowledge-target-evidence.v4"
 
 _TARGET_FIRST_RULE = (
-    "\n【先覆盖目标，再选辅助，最后定位教材】只做分类，不输出新解答。\n"
+    "\n【先覆盖目标，再选辅助，最后定位专题】只做分类，不输出新解答。\n"
     "1. 通读全部条件、小问与选项。把每个待求/待证/待判断产物分别列在内部清单中，"
     "按“数学对象+要完成的动作+条件范围”在全目录比较候选，而非只匹配主题词。"
     "annotation_targets的goal_quotes是本地从题干提取的原文目标，可直接复制；"
     "不将已给公式、背景名词或设问前置条件当成目标。\n"
     "2. 先为每个能匹配的目标选择最贴切的main，再考虑辅助。"
-    "main是直接任务或该任务对应的专门应用能力；求导数或导数值时，导数运算本身是main，"
-    "不能因为它先于求和步骤就降为auxiliary。求参数范围、求某事件概率、列完整分布列、"
+    "main是直接任务或该任务对应的专门应用能力；求某个量时，求该量的运算本身是main，"
+    "不能因为它先于后续步骤就降为auxiliary。求参数范围、求某个事件结果、列完整结果、"
     "求角大小与证明性质是不同任务。优先检查含参、由性质求参、基本量计算或综合应用等"
     "准确条目；只有名字更长或出现字母参数并不足以选它。"
     "同一目标已选准确具体点时，省去重复的背景定义/泛公式点。\n"
     "3. 逐小问复核main覆盖：不能让某小问只有auxiliary而没有其直接目标的main。"
     "目录确无贴切条目时允许该目标不标，不造码或错套；其他小问仍正常标注。"
     "同一编码服务多个目标时合并target_evidence数组；一个点只要是某问的直接目标，"
-    "就按main处理，不因它同时帮助另一问而整体降级。教材先后规则只决定教材位置。\n"
+    "就按main处理，不因它同时帮助另一问而整体降级。专题先后规则只决定专题位置。\n"
     "4. main覆盖完成后，通常只保留0至2个重要auxiliary，不凑数量。"
     "辅助点须有实际提供的解析/评析步骤和相符的完整点名，不能用“体现了/涉及”来泛化。"
     "常规代入、四则运算、移项、计算普通中间量默认省略；专门方法若本身正是待求任务，"
     "可为main，不能仅凭它是原解核心步骤就升级。"
-    "已有导数应用主点时，一次简单求导是先备计算，不再附加基本导数公式/加减运算辅助点；"
-    "若题目直接求导数或导数值，导数运算仍是main。"
+    "已有专门应用主点时，一次简单前置计算是先备计算，不再附加基础公式/四则运算辅助点；"
+    "若题目直接考查该运算，它仍是main。"
     "对“利用某性质求值/解题”的条目，须确认该性质已知或已证并实际被用作前提，"
     "不能将正在证明的性质反当成工具。"
     "只有最终答案、选项字母、孤立结论、图片或假设改题的另解说明不算可核对解析，"
@@ -52,53 +55,35 @@ _TARGET_EVIDENCE_RULE = (
 )
 
 _CONTRAST_EXAMPLES = (
-    "【判定边界示例，仅说明规则】\n"
-    "- 集合由含参方程定义，需由交集/并集条件反推参数才能确定集合时，"
-    "优先比较“含参数的相应集合运算”条目，不仅贴泛交集/并集；"
-    "若只需直接列举共同元素，则不凭任意字母硬选含参条目。\n"
-    "- 已知函数在某区间单调，要求参数范围：比较目录中的“由单调性求参数”类候选；"
-    "要求单调区间才对应求区间的任务。出现单调性并不使两者等同。\n"
-    "- 问“某性质成立的充要条件”且选项是参数取值条件时，待求产物仍是参数条件，"
-    "应覆盖相应的性质求参能力；不能只选“充要条件”而漏掉数学目标。"
-    "只有专门判断两个命题的必要/充分关系时，逻辑关系本身才是独立主目标。\n"
-    "- 证明函数奇偶性时，证明中的赋值或比较函数值，不等于利用已经成立的奇偶性求值；"
-    "证明完成后另一问再使用该性质，才可能是实际辅助。\n"
-    "- 数列题利用前n项和关系反求首项、公差等基本量：比较基本量计算与公式条目，"
-    "不能仅因解中写出求和公式就停在公式标签；若直接考查求和公式本身则另论。\n"
-    "- 已给椭圆方程而要求判断与向量有关的几何关系：已给方程不等于要求求椭圆标准方程，"
-    "应比较实际几何目标与目录中的综合条目；只出现向量符号也不自动构成综合考查。\n"
+    "【判定边界示例，仅说明规则，不预设本次目录内容】\n"
+    "- 已给条件与待求目标不同：题干给出某个对象，不等于要求求该对象；"
+    "应按设问的实际产物选择考点，不选只描述背景的条目。\n"
+    "- 目标与方法不同：解析中用到某个公式或方法，不等于题目考查该公式本身；"
+    "只有题目直接要求运用或判断它时才作为主目标。\n"
+    "- 目标相近的条目按动作与适用范围区分：由性质反推参数与直接求取值、"
+    "求单个量与列出完整结果是不同任务；出现相同背景词不足以等同。\n"
+    "- 证明某个性质时，证明中的代入或中间计算不等于利用已成立的性质求值；"
+    "另一问实际使用该性质，才可能是辅助。\n"
+    "- 多小问题：每问独立目标分别覆盖；同一考点服务多个目标时合并引文，"
+    "不重复添加宽泛背景点。\n"
 )
 
-# Each note is a prompt distinction, never a keyword-based acceptance/rejection
-# guard. Names are tied to shipped, verified stable identities rather than a
-# particular question, old label, model response or expected answer.
-_SEMANTIC_BOUNDARIES = (
-    (
-        "1932",
-        ("利用二项分布求分布列",),
-        "本点的任务是利用二项分布列出随机变量全部可能取值及相应概率。"
-        "只求一个事件、一个取值或某个范围的概率，不等于求分布列；"
-        "不能仅因用到二项概率公式或别名“二项分布”就把本点当作通用概率标签。"
-        "仍需与完整目录中更贴合所求事件的条目比较。",
-    ),
-    (
-        "1097",
-        ("二次函数零点与一元二次方程解的关系",
-         "二次函数零点与一元二次方程解的关系【人教B、苏教、湘教】"),
-        "本点针对二次函数零点与对应一元二次方程解之间的联系。"
-        "仅把给定数值代入方程验证或求解方程，不等于考查函数零点与方程解的对应关系。"
-        "求二次不等式解集时仅把方程根作为中间计算结果，"
-        "不足以证明题目直接考查这种对应关系；"
-        "应区分求方程根、判断函数零点以及解不等式的实际目标。",
-    ),
-    (
-        "5030",
-        ("分层随机抽样的样本均值",),
-        "本点针对由各层数据或各层均值及权重确定、估计样本整体均值。"
-        "求每层抽取人数、样本量或抽样比属于抽样方案和数量关系，"
-        "不等于求样本均值；不能把分层抽样背景本身当作均值考查证据。",
-    ),
-)
+
+def _semantic_boundaries():
+    """Verified identity/name pairs, supplied by the editable teaching context."""
+    rows = teaching_context.context().get("semantic_boundaries") or []
+    if not isinstance(rows, list):
+        raise ValueError("易混条目语义边界必须是数组")
+    result = []
+    for row in rows:
+        if (not isinstance(row, Mapping) or not isinstance(row.get("code"), str)
+                or not row["code"] or not isinstance(row.get("guidance"), str)
+                or not row["guidance"] or not isinstance(row.get("names"), (list, tuple))
+                or not row["names"] or any(not isinstance(name, str) or not name
+                                           for name in row["names"])):
+            raise ValueError("易混条目语义边界字段无效")
+        result.append((row["code"], tuple(row["names"]), row["guidance"]))
+    return tuple(result)
 
 
 def _known_names(point: Mapping) -> set[str]:
@@ -116,7 +101,7 @@ def build_verified_boundary_notes(catalog: Iterable[Mapping] | None = None) -> s
         if isinstance(point, Mapping) and isinstance(point.get("code"), str)
     }
     notes = []
-    for code, expected_names, guidance in _SEMANTIC_BOUNDARIES:
+    for code, expected_names, guidance in _semantic_boundaries():
         point = installed.get(code)
         if point is None or not _known_names(point).intersection(expected_names):
             continue

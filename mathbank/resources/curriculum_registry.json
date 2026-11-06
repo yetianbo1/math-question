@@ -1,0 +1,30 @@
+{
+  "schema_version": "topic-registry-v1",
+  "default_version": "Z",
+  "names": {
+    "Z": "初中数学专题"
+  },
+  "display_labels": {
+    "level1": "专题大类",
+    "level2": "子专题",
+    "level3": "考点"
+  },
+  "difficulties": [
+    {
+      "value": "basic",
+      "label": "基础题"
+    },
+    {
+      "value": "normal",
+      "label": "中档题"
+    },
+    {
+      "value": "easy_error",
+      "label": "易错题"
+    },
+    {
+      "value": "challenge",
+      "label": "压轴题"
+    }
+  ]
+}

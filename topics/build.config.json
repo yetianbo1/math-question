@@ -24,5 +24,11 @@
     { "value": "easy_error", "label": "易错题" },
     { "value": "challenge", "label": "压轴题" }
   ],
-  "empty_points": "warn"
+  "empty_points": "warn",
+  "knowledge_points": {
+    "code_prefix": "local:topic-",
+    "code_hash_length": 8,
+    "source_note": "由专题大纲生成：每个考点对应一个稳定本地编码",
+    "required_codes": []
+  }
 }

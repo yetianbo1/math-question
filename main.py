@@ -4332,11 +4332,13 @@ def delete_question(
 
 # ----------------- Category Hierarchy Autocomplete API -----------------
 
-# Backward-compatible names; authoritative data lives in JSON resources.
-RENJIAO_A_CURRICULUM = load_curriculum("A")
-RENJIAO_B_CURRICULUM = load_curriculum("B")
-SUJIAO_CURRICULUM = load_curriculum("S")
-HUJIAO_CURRICULUM = load_curriculum("H")
+# Topic fork: one generated outline is active. The historical constant names
+# are kept as aliases so unrelated call sites keep working.
+ACTIVE_CURRICULUM = load_curriculum()
+RENJIAO_A_CURRICULUM = ACTIVE_CURRICULUM
+RENJIAO_B_CURRICULUM = ACTIVE_CURRICULUM
+SUJIAO_CURRICULUM = ACTIVE_CURRICULUM
+HUJIAO_CURRICULUM = ACTIVE_CURRICULUM
 
 METADATA_FILE = str(DATA_BACKUP_DIR / ("custom_metadata_test.json" if IS_TESTING else "custom_metadata.json"))
 METADATA_CACHE = {}
@@ -4346,7 +4348,7 @@ def get_current_curriculum():
 
 def load_or_init_metadata():
     global METADATA_CACHE
-    default_metadata = build_default_metadata("A")
+    default_metadata = build_default_metadata()
     
     # Ensure backup directory exists
     os.makedirs(os.path.dirname(METADATA_FILE), exist_ok=True)
