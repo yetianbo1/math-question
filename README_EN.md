@@ -1,5 +1,7 @@
 # MathBank - Localized Math Question Bank & Exam Layout Workbench
 
+> **Derivative project**: This repository is a fork of [JudgePeach/MathBank](https://github.com/JudgePeach/math-question-bank) (V3.0.2). The original project is licensed under **GNU AGPL-3.0**; this repository remains under the same license and keeps the original `LICENSE` and copyright notices. This branch targets **junior-high mathematics** and replaces the high-school textbook outlines with a topic outline. See section 8 of `AGENTS.md` for the customization design and conventions.
+
 [中文](README.md) | [English](README_EN.md)
 
 > **Project Tags**: Math Question Bank | High School Math | Lesson Prep & Teaching Research | A4 Layout Simulation | Intelligent Exam Generation | Gaokao-Level Export | Formula OCR | DeepSeek AI | EdTech

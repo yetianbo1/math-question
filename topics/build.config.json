@@ -1,0 +1,28 @@
+{
+  "schema_version": "topic-build-config-v1",
+  "source": "topics/初中数学专题大纲.json",
+  "version_code": "Z",
+  "curriculum_name": "初中数学专题",
+  "display_labels": {
+    "level1": "专题大类",
+    "level2": "子专题",
+    "level3": "考点"
+  },
+  "field_map": {
+    "groups": "topics",
+    "group_name": "name",
+    "group_id": "id",
+    "children": "subtopics",
+    "child_name": "name",
+    "child_id": "id",
+    "points": "points"
+  },
+  "metadata_fields": ["title", "description", "subject", "stage"],
+  "difficulties": [
+    { "value": "basic", "label": "基础题" },
+    { "value": "normal", "label": "中档题" },
+    { "value": "easy_error", "label": "易错题" },
+    { "value": "challenge", "label": "压轴题" }
+  ],
+  "empty_points": "warn"
+}

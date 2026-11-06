@@ -1,5 +1,7 @@
 # MathBank - 本地化数学题库与组卷排版工作台
 
+> **衍生项目声明**：本仓库基于 [JudgePeach/MathBank](https://github.com/JudgePeach/math-question-bank)（V3.0.2）二次开发。原项目采用 **GNU AGPL-3.0**，本仓库按同一协议开源并保留原 `LICENSE` 与版权声明。本分支面向**初中数学**，用专题大纲替代原高中教材大纲；改造设计与开发约定见 `AGENTS.md` 第 8 节。
+
 [中文](README.md) | [English](README_EN.md)
 
 📖 **使用帮助**：[MathBank 帮助网页](https://mathbank.pages.dev/)

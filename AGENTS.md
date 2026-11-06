@@ -461,3 +461,51 @@
 - **公式与分页实物回归**：公式原生验证使用 `MATHBANK_TEST_MATH_NATIVE=1 python3 -m pytest --noconftest tests/test_math_markdown.py tests/test_math_preview_regressions.py`。实际浏览器回归使用可选的 `agent-browser` CLI 与 Chromium，执行 `MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest tests/test_preview_browser.py`，在不复制数据库、上传文件或凭据的临时源码副本中启动服务；覆盖规范/裸公式表格、缩窗、超长页多轮重排、标题连续输入、同页/跨页拖拽及取消、三种模板和过期回调。该工具仅用于验证，不引入前端构建或运行时依赖；浏览器中须核对公式内容和题目底部边界，不能只统计 KaTeX 节点或题目 ID。
 
 - **图片生命周期专项验证**：`tests/test_question_asset_references.py`、`tests/test_asset_lifecycle.py`、`tests/test_image_lifecycle_api.py`、`tests/test_image_lifecycle_frontend.py` 及 `tests/test_task_manager.py` 覆盖引用补登记、草稿跨重启、HTTP 恢复、完整性/符号链接、任务续期、共享图重复入库、失败回滚与并发保存/删除。真实页面专项为 `MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest tests/test_image_lifecycle_browser.py`，核对草稿刷新恢复、图片实际尺寸、保存期间新输入/Dirty，以及共享图入库后的卡片预览。API/浏览器测试必须在不含真实数据库、上传文件、保留区和凭据的临时源码副本执行；不得为测试对真实图片执行清理。 并发保存/删除用例须使用隔离文件 SQLite 的独立连接及真实外键/WAL设置，统一请求与后台导出 Session 工厂；不得用共享单连接 `StaticPool` 的会话关闭回滚代替生产并发行为，也不得通过睡眠、重试或放宽外键掩盖失败。
+
+## 8. 初中专题定制（衍生分支）
+
+本章是本仓库相对上游定制的**唯一记录处**，不另建平行开发文档。
+
+### 8.1 基线与协议
+- 基线：上游 tag `V3.0.2`（`8fa17f2`）。remote：`upstream` = JudgePeach/math-question-bank，`origin` = yetianbo1/math-question（**public**）。
+- 上游为 GNU AGPL-3.0；本仓库是公开衍生作品，保留 `LICENSE` 与作者署名，继续按 AGPL-3.0 开源，不得改协议或移除版权声明。中英文 README 顶部已加衍生声明，每次推送后继续同步核对。
+- 同步：`git fetch upstream --tags` 后按上游发版节奏评估合并，不追 `main` 每次提交；只推代码分支，不创建/移动 Tag 或 Release。
+- 待定：`mathbank/__init__.py` 的 `GITHUB_REPO` 仍指向上游，版本更新提示会显示上游 Release。
+
+### 8.2 语义映射：换语义，不换结构
+- 上游 `compulsory / chapter / knowledge` 三层字段、12 张表、题型枚举、API、导出、查重与 Agent 只读接口**全部保留**，语义改为「专题大类 / 子专题 / 考点」。
+- 版本码 `Z`；`mathbank/curriculums.py` 的 `CURRICULUM_NAMES` 只注册 `Z`，默认版本参数由 `A` 改为 `Z`。六套高中教材 JSON 保留在磁盘但不注册。
+- `mathbank/resources/curriculums/Z.json` 是生成物，**禁止手改**。
+
+### 8.3 专题大纲唯一数据源与「不写死」约定
+- `topics/初中数学专题大纲.json` 是唯一数据源（当前 6 大类 / 33 子专题 / 99 考点）；`topics/build.config.json` 保存版本码、显示标签、难度建议与 `field_map`。
+- `tools/build_curriculum.py` **不得包含任何专题名、字段名、版本码或绝对路径**。增删专题、改名、改考点只动大纲 JSON；字段名或层级变化只改 `field_map`；换版本码只改配置。
+- 大纲中的额外字段（如 `icon`、`title`）由脚本原样收进 `topic_index.json` 的 `extras`，不得丢弃。考点为空只告警、**不造数据**（当前 `6.3 存在性问题` 为空，上游三级筛选会显示空列表）。
+- `build/` 是派生物（上游已忽略，不提交）；`--install` 写入的 `curriculums/Z.json` 需要提交。
+
+### 8.4 日常命令
+```bash
+python tools/build_curriculum.py --check      # 只校验
+python tools/build_curriculum.py              # 生成 build/ 下三份产物
+python tools/build_curriculum.py --install    # 同时写入 mathbank/resources/curriculums/Z.json
+cp ~/Desktop/初中数学专题大纲.json topics/初中数学专题大纲.json   # 从桌面同步改后的大纲
+python tools/build_curriculum.py --input <路径> --install        # 直接读别处的文件
+```
+本机 Git Bash 访问 GitHub 需 `-c http.sslBackend=openssl -c http.schannelCheckRevoke=false`（Windows schannel 吊销检查离线）；`curl` 用 `--ssl-no-revoke`。
+
+### 8.5 本轮已改动
+`mathbank/curriculums.py`（注册 Z / 默认值）、`mathbank/resources/curriculums/Z.json`（新增）、`topics/*`、`tools/build_curriculum.py`、`README.md` / `README_EN.md`（协议声明）、`.gitignore`（忽略 `.workbuddy/`）、`AGENTS.md` 本章。
+
+### 8.6 待办（下一轮，未改动）
+- `mathbank/resources/knowledge_points.json`：773 个高中知识点 / 9289 条教材路径，启用 AI 分类前必须换成初中考点目录或停用自动标注。
+- `mathbank/resources/paper_curriculum_standards.json`：普通高中课标选摘，需清空或换成中考说明。
+- `mathbank/resources/knowledge_prompt_profiles/*.txt`、`mathbank/prompts.py`（8 个函数 + `CLASSIFICATION_PRIORITY_RULE` 含「必修一三角函数／必修二平面向量」硬编码）、`mathbank/ai_knowledge_points.py`、`mathbank/knowledge_prompt_profiles.py`：去高中/高考语境，改用动态注入的专题树，**不得在提示词里硬编码专题名**。
+- 前端「学段/章节/小节」标签、难度下拉的「强基题」、`savedPaperType` 的「19题高考卷」；`main.py` 的高中册名别名映射。
+- `Paper.total_score=150` 与试卷结构：用户明确**当前不改**，待中考方案确定后再动。
+- AI 供应商 Key：用户明确**当前不配置**，只写本地 `.env`。
+
+### 8.7 验证口径
+- `python tools/build_curriculum.py --check` 通过，输出计数与大纲一致。
+- `python -c "from mathbank.curriculums import load_curriculum; print(list(load_curriculum()))"` 返回 6 个专题大类。
+- JS 改动逐文件 `node --check`；`python -m pytest tests/ -q` 改动前后对比。
+- 启动后 `/healthz` 就绪、`/api/version` 回读与 `mathbank/__init__.py` 的 `__version__` 一致。

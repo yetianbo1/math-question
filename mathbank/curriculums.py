@@ -12,13 +12,10 @@ import json
 from mathbank.paths import CURRICULUMS_DIR
 
 
+# Junior-high topic fork: only the generated topic outline is registered.
+# The six upstream textbook JSON files stay on disk but are not exposed.
 CURRICULUM_NAMES = {
-    "A": "人教A版",
-    "B": "人教B版",
-    "S": "苏教版",
-    "H": "沪教版",
-    "N": "北师大版",
-    "X": "湘教版",
+    "Z": "初中数学专题",
 }
 
 DEFAULT_QUESTION_TYPES = [
@@ -55,7 +52,7 @@ DEFAULT_DIFFICULTIES = [
 def normalize_version_code(version: str) -> str:
     """Validate and normalize a curriculum version code."""
 
-    code = str(version or "A").strip().upper()
+    code = str(version or "Z").strip().upper()
     if code not in CURRICULUM_NAMES:
         raise ValueError(f"不支持的教材大纲版本: {version}")
     return code
@@ -72,13 +69,13 @@ def _load_curriculum_cached(version: str) -> dict:
     return data
 
 
-def load_curriculum(version: str = "A") -> dict:
+def load_curriculum(version: str = "Z") -> dict:
     """Return an isolated copy of one curriculum tree."""
 
     return deepcopy(_load_curriculum_cached(normalize_version_code(version)))
 
 
-def build_default_metadata(version: str = "A") -> dict:
+def build_default_metadata(version: str = "Z") -> dict:
     """Build the editable metadata payload used by settings and first boot."""
 
     code = normalize_version_code(version)
@@ -90,7 +87,7 @@ def build_default_metadata(version: str = "A") -> dict:
     }
 
 
-def get_curriculum_preset(version: str = "A") -> dict:
+def get_curriculum_preset(version: str = "Z") -> dict:
     """Return the API representation of a curriculum preset."""
 
     code = normalize_version_code(version)

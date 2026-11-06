@@ -138,3 +138,6 @@ tests/artifacts/*
 /tests/test_question_exchange.py
 /scripts/migrate_word_math_private_chars.py
 /tests/test_migrate_word_math_private_chars.py
+
+# WorkBuddy 本地工作记忆，不进入公开仓库
+.workbuddy/
